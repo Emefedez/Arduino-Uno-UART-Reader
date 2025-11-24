@@ -16,7 +16,7 @@ Modified version of the Justatic's UART bridge for Arduino Uno boards (<https://
 <img width="1512" height="860" alt="Captura de pantalla 2025-11-24 a las 23 24 46" src="https://github.com/user-attachments/assets/ba902b95-f9ed-41cc-ab85-7f75c6897cd6" />
 <img width="1512" height="860" alt="Captura de pantalla 2025-11-24 a las 23 24 59" src="https://github.com/user-attachments/assets/e6517f5c-5222-4fe9-bb39-00e628332417" />
 
-**IF YOU WANT TO CREATE AN AUTOMATOR APP ON MAC**
+**IF YOU WANT TO CREATE AN AUTOMATOR APP ON MAC:**
 
 <img width="994" height="487" alt="Captura de pantalla 2025-11-24 a las 23 51 57" src="https://github.com/user-attachments/assets/7be53491-a028-4337-b30b-4f43862e55f0" />
 
