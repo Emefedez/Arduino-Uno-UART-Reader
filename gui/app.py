@@ -81,4 +81,5 @@ if __name__ == '__main__':
         
     # Open browser automatically
     threading.Timer(1.5, lambda: webbrowser.open("http://localhost:5000")).start()
-    socketio.run(app, port=5000, debug=False)
+    # Para desarrollo: permitir Werkzeug (no recomendado en producción)
+    socketio.run(app, port=5000, debug=False, allow_unsafe_werkzeug=True)
