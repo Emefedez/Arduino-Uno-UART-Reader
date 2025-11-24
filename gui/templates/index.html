@@ -1,93 +1,362 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Arduino Monitor</title>
+    <title>Monitor Arduino</title>
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root { --bg: #1a1a1a; --panel: #2d2d2d; --text: #e0e0e0; --accent: #3498db; --success: #2ecc71; }
-        body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; height: 100vh; }
-        
+        :root {
+            --bg: #1a1a1a;
+            --panel: #2d2d2d;
+            --text: #e0e0e0;
+            --accent: #3498db;
+            --success: #2ecc71;
+            --danger: #e74c3c;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Segoe UI', sans-serif;
+            margin: 0;
+            display: flex;
+            height: 100vh;
+        }
+
         /* Sidebar */
-        .sidebar { width: 250px; background: var(--panel); padding: 20px; display: flex; flex-direction: column; gap: 15px; border-right: 1px solid #444; }
-        .logo { font-size: 1.5em; font-weight: bold; margin-bottom: 10px; color: var(--accent); }
-        button { background: var(--accent); color: white; border: none; padding: 10px; cursor: pointer; border-radius: 4px; transition: 0.2s; }
-        button:hover { opacity: 0.9; }
-        button.red { background: #e74c3c; }
-        select { padding: 8px; background: #444; color: white; border: 1px solid #555; border-radius: 4px; }
-        
-        .pin-list { overflow-y: auto; flex: 1; border: 1px solid #444; padding: 10px; border-radius: 4px; }
-        .pin-item { display: flex; align-items: center; gap: 10px; margin-bottom: 5px; }
-        
+        .sidebar {
+            width: 280px;
+            background: var(--panel);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            border-right: 1px solid #444;
+            overflow-y: auto;
+        }
+
+        .logo {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo img {
+            width: 30px;
+            height: 30px;
+        }
+
+        button {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 10px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: 0.2s;
+            font-weight: bold;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        button.red {
+            background: var(--danger);
+        }
+
+        button.green {
+            background: var(--success);
+        }
+
+        select {
+            padding: 8px;
+            background: #444;
+            color: white;
+            border: 1px solid #555;
+            border-radius: 4px;
+            width: 100%;
+        }
+
+        .section-title {
+            font-weight: bold;
+            margin-top: 10px;
+            border-bottom: 1px solid #555;
+            padding-bottom: 5px;
+        }
+
+        .pin-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #444;
+            padding: 10px;
+            border-radius: 4px;
+            background: #222;
+        }
+
+        .pin-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 5px;
+        }
+
+        .status-indicator {
+            padding: 5px;
+            border-radius: 4px;
+            background: #444;
+            text-align: center;
+            font-size: 0.9em;
+        }
+
+        .status-indicator.ok {
+            background: var(--success);
+            color: #000;
+        }
+
+        .status-indicator.error {
+            background: var(--danger);
+            color: #fff;
+        }
+
         /* Main Content */
-        .main { flex: 1; display: flex; flex-direction: column; padding: 20px; gap: 20px; overflow: hidden; }
-        
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            gap: 20px;
+            overflow: hidden;
+        }
+
         /* Tabs */
-        .tabs { display: flex; gap: 10px; border-bottom: 1px solid #444; padding-bottom: 10px; }
-        .tab { padding: 8px 16px; cursor: pointer; border-radius: 4px; background: #333; }
-        .tab.active { background: var(--accent); }
-        
+        .tabs {
+            display: flex;
+            gap: 10px;
+            border-bottom: 1px solid #444;
+            padding-bottom: 10px;
+        }
+
+        .tab {
+            padding: 8px 16px;
+            cursor: pointer;
+            border-radius: 4px;
+            background: #333;
+            transition: 0.2s;
+        }
+
+        .tab:hover {
+            background: #444;
+        }
+
+        .tab.active {
+            background: var(--accent);
+            color: white;
+        }
+
         /* Views */
-        .view { display: none; flex: 1; overflow: hidden; flex-direction: column; }
-        .view.active { display: flex; }
-        
+        .view {
+            display: none;
+            flex: 1;
+            overflow: hidden;
+            flex-direction: column;
+        }
+
+        .view.active {
+            display: flex;
+        }
+
         /* Monitor */
-        .monitor-log { flex: 1; background: #000; font-family: monospace; padding: 10px; overflow-y: auto; border-radius: 4px; margin-bottom: 10px; }
-        .log-entry { margin: 2px 0; border-bottom: 1px solid #222; display: flex; gap: 10px; }
-        .log-time { color: #888; min-width: 80px; }
-        .log-origin { color: var(--accent); min-width: 100px; font-weight: bold; }
-        .input-area { display: flex; gap: 10px; }
-        input[type="text"] { flex: 1; padding: 10px; background: #333; border: 1px solid #555; color: white; border-radius: 4px; }
-        
-        /* Pins */
-        .pin-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 15px; padding: 20px; }
-        .pin-card { background: #333; padding: 10px; border-radius: 8px; text-align: center; border: 1px solid #444; }
-        .pin-card.active { border-color: var(--success); }
-        .pin-val { font-size: 1.2em; font-weight: bold; margin-top: 5px; }
-        .led { width: 15px; height: 15px; border-radius: 50%; background: #555; margin: 5px auto; }
-        .led.on { background: var(--success); box-shadow: 0 0 10px var(--success); }
-        
+        .monitor-log {
+            flex: 1;
+            background: #000;
+            font-family: 'Consolas', monospace;
+            padding: 10px;
+            overflow-y: auto;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            border: 1px solid #444;
+        }
+
+        .log-entry {
+            margin: 2px 0;
+            border-bottom: 1px solid #222;
+            display: flex;
+            gap: 10px;
+            font-size: 0.9em;
+        }
+
+        .log-time {
+            color: #666;
+            min-width: 90px;
+        }
+
+        .log-origin {
+            color: var(--accent);
+            min-width: 120px;
+            font-weight: bold;
+        }
+
+        .input-area {
+            display: flex;
+            gap: 10px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 10px;
+            background: #333;
+            border: 1px solid #555;
+            color: white;
+            border-radius: 4px;
+        }
+
+        /* Pins Visualizer */
+        .visualizer-split {
+            display: flex;
+            gap: 20px;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .arduino-view {
+            flex: 0 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #222;
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .arduino-view img {
+            max-width: 400px;
+            max-height: 70vh;
+            object-fit: contain;
+        }
+
+        .pin-grid-view {
+            flex: 1;
+            overflow-y: auto;
+            background: #1a1a1a;
+            border-radius: 8px;
+            padding: 15px;
+        }
+
+        .pin-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 12px;
+        }
+
+        .pin-card {
+            background: #2d2d2d;
+            border: 2px solid #444;
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+            transition: all 0.3s;
+        }
+
+        .pin-card.active {
+            background: var(--success);
+            color: #000;
+            border-color: var(--success);
+            box-shadow: 0 0 15px rgba(46, 204, 113, 0.5);
+        }
+
+        .pin-card-label {
+            font-size: 0.9em;
+            font-weight: bold;
+            margin-bottom: 8px;
+            opacity: 0.8;
+        }
+
+        .pin-card-value {
+            font-size: 1.4em;
+            font-weight: bold;
+            font-family: 'Consolas', monospace;
+        }
+
         /* Graph */
-        .chart-container { flex: 1; position: relative; }
+        .chart-container {
+            flex: 1;
+            position: relative;
+            background: #222;
+            padding: 10px;
+            border-radius: 8px;
+        }
     </style>
 </head>
+
 <body>
     <div class="sidebar">
-        <div class="logo">Arduino GUI</div>
-        
-        <select id="port-select"><option>Loading ports...</option></select>
-        <button onclick="refreshPorts()">Refresh Ports</button>
-        <button id="connect-btn" onclick="toggleConnect()">Connect</button>
-        
-        <div style="margin-top: 20px; font-weight: bold;">Pin Config</div>
-        <button onclick="detectAll()">Detect All</button>
+        <div class="logo">
+            <img src="{{ url_for('static', filename='favicon.ico') }}" alt="Logo">
+            Monitor Arduino
+        </div>
+
+        <div class="section-title">Conexión</div>
+        <select id="port-select">
+            <option>Cargando puertos...</option>
+        </select>
+        <button onclick="refreshPorts()">Refrescar Puertos</button>
+        <button id="connect-btn" onclick="toggleConnect()">Conectar</button>
+
+        <div class="section-title">Prueba de Sistema</div>
+        <button onclick="testBridge()">Probar Puente UART</button>
+        <div id="bridge-status" class="status-indicator">Estado: Desconocido</div>
+
+        <div class="section-title">Configuración de Pines</div>
+        <button id="toggle-all-btn" onclick="toggleAllPins()">Seleccionar Todos</button>
         <div class="pin-list" id="pin-config-list">
             <!-- Checkboxes generated here -->
         </div>
-        <button onclick="applyConfig()">Apply Config</button>
+        <button onclick="applyConfig()">Aplicar Configuración</button>
+
+        <div class="section-title">Filtro de Ruido</div>
+        <label style="font-size: 0.9em;">Tolerancia Analógica: <span id="tolerance-value">10</span></label>
+        <input type="range" id="tolerance-slider" min="0" max="100" value="10" style="width: 100%;"
+            oninput="updateTolerance(this.value)">
+        <div style="font-size: 0.8em; opacity: 0.7; margin-top: 5px;">Valores menores a este cambio serán ignorados
+        </div>
     </div>
 
     <div class="main">
         <div class="tabs">
-            <div class="tab active" onclick="switchTab('monitor')">Monitor</div>
-            <div class="tab" onclick="switchTab('pins')">Pins</div>
-            <div class="tab" onclick="switchTab('graph')">Graph</div>
+            <div class="tab active" onclick="switchTab('monitor')">Monitor Serie</div>
+            <div class="tab" onclick="switchTab('pins')">Visualizador de Pines</div>
+            <div class="tab" onclick="switchTab('graph')">Gráfico en Tiempo Real</div>
         </div>
 
         <!-- Monitor View -->
         <div id="monitor" class="view active">
             <div class="monitor-log" id="log-container"></div>
             <div class="input-area">
-                <input type="text" id="cmd-input" placeholder="Send command..." onkeypress="if(event.key==='Enter') sendCmd()">
-                <button onclick="sendCmd()">Send</button>
+                <input type="text" id="cmd-input" placeholder="Enviar comando..."
+                    onkeypress="if(event.key==='Enter') sendCmd()">
+                <button onclick="sendCmd()">Enviar</button>
             </div>
         </div>
 
         <!-- Pins View -->
         <div id="pins" class="view">
-            <div class="pin-grid" id="pin-visualizer"></div>
+            <div class="visualizer-split">
+                <div class="arduino-view">
+                    <img src="{{ url_for('static', filename='arduino_pinout.png') }}" alt="Arduino Uno R3">
+                </div>
+                <div class="pin-grid-view">
+                    <div class="pin-grid" id="pin-grid"></div>
+                </div>
+            </div>
         </div>
 
         <!-- Graph View -->
@@ -102,14 +371,25 @@
         const socket = io();
         let isConnected = false;
         let chart;
-        let chartData = {}; // { 'A0': [v1, v2...], ... }
-        
+        let chartData = {}; // { 'D0': [v1, v2...], 'A0': [v1, v2...], ... }
+        let allSelected = false;
+        let pinStates = {}; // Current pin states for the grid
+        let lastStableValues = {}; // Last stable values for hysteresis
+        let analogTolerance = 10; // Tolerance for analog value changes
+
         // --- Init ---
         window.onload = () => {
             refreshPorts();
             initPinConfig();
             initChart();
+            createPinGrid();
         };
+
+        // --- Tolerance Control ---
+        function updateTolerance(value) {
+            analogTolerance = parseInt(value);
+            document.getElementById('tolerance-value').textContent = value;
+        }
 
         // --- Socket Events ---
         socket.on('new_message', (msg) => {
@@ -119,6 +399,13 @@
             const container = document.getElementById('log-container');
             container.appendChild(div);
             container.scrollTop = container.scrollHeight;
+
+            // Check for Bridge Test Response
+            if (msg.data.includes("PING")) {
+                const status = document.getElementById('bridge-status');
+                status.textContent = "Puente: OK (Respuesta Recibida)";
+                status.className = "status-indicator ok";
+            }
         });
 
         socket.on('status_update', (status) => {
@@ -150,18 +437,18 @@
                 const port = document.getElementById('port-select').value;
                 const res = await fetch('/api/connect', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({port})
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ port })
                 });
                 if (res.ok) {
                     isConnected = true;
-                    btn.textContent = "Disconnect";
+                    btn.textContent = "Desconectar";
                     btn.classList.add('red');
                 }
             } else {
-                await fetch('/api/disconnect', {method: 'POST'});
+                await fetch('/api/disconnect', { method: 'POST' });
                 isConnected = false;
-                btn.textContent = "Connect";
+                btn.textContent = "Conectar";
                 btn.classList.remove('red');
             }
         }
@@ -172,10 +459,22 @@
             if (cmd) {
                 await fetch('/api/send', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({cmd})
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ cmd })
                 });
                 input.value = '';
+            }
+        }
+
+        async function testBridge() {
+            const status = document.getElementById('bridge-status');
+            status.textContent = "Enviando PING...";
+            status.className = "status-indicator";
+
+            const res = await fetch('/api/test_bridge', { method: 'POST' });
+            if (!res.ok) {
+                status.textContent = "Error: No conectado";
+                status.className = "status-indicator error";
             }
         }
 
@@ -183,17 +482,21 @@
         function initPinConfig() {
             const list = document.getElementById('pin-config-list');
             // Digital
-            for(let i=0; i<14; i++) {
-                list.innerHTML += `<div class="pin-item"><input type="checkbox" id="chk-d${i}" data-type="D" data-idx="${i}"><label>D${i}</label></div>`;
+            for (let i = 0; i < 14; i++) {
+                list.innerHTML += `<div class="pin-item"><input type="checkbox" id="chk-d${i}" data-type="D" data-idx="${i}"><label>Digital ${i}</label></div>`;
             }
             // Analog
-            for(let i=0; i<6; i++) {
-                list.innerHTML += `<div class="pin-item"><input type="checkbox" id="chk-a${i}" data-type="A" data-idx="${i}"><label>A${i}</label></div>`;
+            for (let i = 0; i < 6; i++) {
+                list.innerHTML += `<div class="pin-item"><input type="checkbox" id="chk-a${i}" data-type="A" data-idx="${i}"><label>Analog ${i}</label></div>`;
             }
         }
 
-        function detectAll() {
-            document.querySelectorAll('input[type="checkbox"]').forEach(c => c.checked = true);
+        function toggleAllPins() {
+            allSelected = !allSelected;
+            const btn = document.getElementById('toggle-all-btn');
+            btn.textContent = allSelected ? "Deseleccionar Todos" : "Seleccionar Todos";
+
+            document.querySelectorAll('input[type="checkbox"]').forEach(c => c.checked = allSelected);
             applyConfig();
         }
 
@@ -206,50 +509,73 @@
                     else a_pins.push(parseInt(c.dataset.idx));
                 }
             });
-            
+
             await fetch('/api/config', {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({d_pins, a_pins})
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ d_pins, a_pins })
             });
-            
-            // Reset Visualizer
-            document.getElementById('pin-visualizer').innerHTML = '';
-            d_pins.forEach(p => createPinCard(`D${p}`, 'D'));
-            a_pins.forEach(p => createPinCard(`A${p}`, 'A'));
-            
-            // Reset Chart
-            chartData = {};
-            a_pins.forEach(p => chartData[`A${p}`] = []);
-            chart.data.datasets = a_pins.map(p => ({
-                label: `A${p}`,
-                data: [],
-                borderColor: getRandomColor(),
-                fill: false
-            }));
-            chart.update();
+
+            // We don't reset chart here anymore, we keep all datasets
         }
 
-        function createPinCard(id, type) {
-            const div = document.createElement('div');
-            div.className = 'pin-card';
-            div.id = `card-${id}`;
-            div.innerHTML = `
-                <div>${id}</div>
-                ${type === 'D' ? '<div class="led" id="val-'+id+'"></div>' : '<div class="pin-val" id="val-'+id+'">0</div>'}
+        // --- Visualizer ---
+        function createPinGrid() {
+            const container = document.getElementById('pin-grid');
+            // Create cards for all pins (D0-D13, A0-A5)
+            for (let i = 0; i < 14; i++) {
+                createPinCard(container, `D${i}`);
+            }
+            for (let i = 0; i < 6; i++) {
+                createPinCard(container, `A${i}`);
+            }
+        }
+
+        function createPinCard(container, pinName) {
+            const card = document.createElement('div');
+            card.className = 'pin-card';
+            card.id = `card-${pinName}`;
+            card.innerHTML = `
+                <div class="pin-card-label">${pinName}</div>
+                <div class="pin-card-value" id="value-${pinName}">--</div>
             `;
-            document.getElementById('pin-visualizer').appendChild(div);
+            container.appendChild(card);
         }
 
         function updatePinVisualizer(status) {
             for (const [key, val] of Object.entries(status)) {
-                const el = document.getElementById(`val-${key}`);
-                if (el) {
-                    if (key.startsWith('D')) {
-                        if (val === 1) el.classList.add('on');
-                        else el.classList.remove('on');
+                let displayValue = val;
+
+                // Apply hysteresis filter for analog pins
+                if (key.startsWith('A')) {
+                    if (lastStableValues[key] !== undefined) {
+                        const diff = Math.abs(val - lastStableValues[key]);
+                        if (diff < analogTolerance) {
+                            displayValue = lastStableValues[key]; // Keep old value
+                        } else {
+                            lastStableValues[key] = val; // Update stable value
+                        }
                     } else {
-                        el.textContent = val;
+                        lastStableValues[key] = val; // First reading
+                    }
+                } else {
+                    // Digital pins always update immediately
+                    displayValue = val;
+                }
+
+                pinStates[key] = displayValue;
+                const card = document.getElementById(`card-${key}`);
+                const valueEl = document.getElementById(`value-${key}`);
+
+                if (card && valueEl) {
+                    if (key.startsWith('D')) {
+                        valueEl.textContent = displayValue === 1 ? 'HIGH' : 'LOW';
+                        if (displayValue === 1) card.classList.add('active');
+                        else card.classList.remove('active');
+                    } else {
+                        valueEl.textContent = displayValue;
+                        if (displayValue > 512) card.classList.add('active');
+                        else card.classList.remove('active');
                     }
                 }
             }
@@ -258,14 +584,65 @@
         // --- Graph ---
         function initChart() {
             const ctx = document.getElementById('myChart').getContext('2d');
+
+            const datasets = [];
+            // Analog pins (A0-A5) - use right Y-axis
+            for (let i = 0; i < 6; i++) {
+                const label = `A${i}`;
+                chartData[label] = [];
+                datasets.push({
+                    label: label,
+                    data: [],
+                    borderColor: getRandomColor(),
+                    fill: false,
+                    hidden: false,
+                    yAxisID: 'y-analog'
+                });
+            }
+            // Digital pins (D0-D13) - use left Y-axis
+            for (let i = 0; i < 14; i++) {
+                const label = `D${i}`;
+                chartData[label] = [];
+                datasets.push({
+                    label: label,
+                    data: [],
+                    borderColor: getRandomColor(),
+                    fill: false,
+                    hidden: true, // Hidden by default
+                    yAxisID: 'y-digital',
+                    stepped: true
+                });
+            }
+
             chart = new Chart(ctx, {
                 type: 'line',
-                data: { labels: Array(50).fill(''), datasets: [] },
+                data: { labels: Array(50).fill(''), datasets: datasets },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     animation: false,
-                    scales: { y: { beginAtZero: true, max: 1024 } }
+                    scales: {
+                        'y-digital': {
+                            type: 'linear',
+                            position: 'left',
+                            beginAtZero: true,
+                            max: 1.2,
+                            grid: { color: '#444' },
+                            ticks: { color: '#aaa', stepSize: 1 },
+                            title: { display: true, text: 'Digital', color: '#aaa' }
+                        },
+                        'y-analog': {
+                            type: 'linear',
+                            position: 'right',
+                            beginAtZero: true,
+                            max: 1024,
+                            grid: { color: '#333' },
+                            ticks: { color: '#aaa' },
+                            title: { display: true, text: 'Analog', color: '#aaa' }
+                        },
+                        x: { grid: { color: '#444' }, ticks: { color: '#aaa' } }
+                    },
+                    plugins: { legend: { labels: { color: '#fff' } } }
                 }
             });
         }
@@ -273,19 +650,21 @@
         function updateGraph(status) {
             let updated = false;
             for (const [key, val] of Object.entries(status)) {
-                if (key.startsWith('A') && chartData[key]) {
-                    chartData[key].push(val);
-                    if (chartData[key].length > 50) chartData[key].shift();
-                    
-                    // Find dataset
-                    const ds = chart.data.datasets.find(d => d.label === key);
-                    if (ds) {
-                        ds.data = chartData[key];
-                        updated = true;
-                    }
+                // Use the filtered value from pinStates if available (for analog)
+                let graphValue = pinStates[key] !== undefined ? pinStates[key] : val;
+
+                if (!chartData[key]) chartData[key] = [];
+
+                chartData[key].push(graphValue);
+                if (chartData[key].length > 50) chartData[key].shift();
+
+                const ds = chart.data.datasets.find(d => d.label === key);
+                if (ds) {
+                    ds.data = chartData[key];
+                    updated = true;
                 }
             }
-            if (updated) chart.update();
+            if (updated) chart.update('none');
         }
 
         function switchTab(tabId) {
@@ -294,7 +673,7 @@
             document.getElementById(tabId).classList.add('active');
             event.target.classList.add('active');
         }
-        
+
         function getRandomColor() {
             const letters = '0123456789ABCDEF';
             let color = '#';
@@ -305,4 +684,5 @@
         }
     </script>
 </body>
+
 </html>

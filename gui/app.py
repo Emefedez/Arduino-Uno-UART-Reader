@@ -4,6 +4,7 @@ from serial_handler import SerialHandler
 import threading
 import time
 import webbrowser
+import os
 
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*")
@@ -62,7 +63,22 @@ def config():
     serial_handler.send_config(d_pins, a_pins)
     return {'status': 'configured'}
 
+@app.route('/api/test_bridge', methods=['POST'])
+def test_bridge():
+    # Send PING and wait for response (handled asynchronously by frontend via socket)
+    # But we can just send the command here.
+    if serial_handler.serial_port and serial_handler.serial_port.is_open:
+        serial_handler.send("PING")
+        return {'status': 'sent'}
+    return {'status': 'error', 'message': 'Not connected'}, 400
+
 if __name__ == '__main__':
+    # Kill any process on port 5000
+    try:
+        os.system("lsof -ti :5000 | xargs kill -9")
+    except:
+        pass
+        
     # Open browser automatically
     threading.Timer(1.5, lambda: webbrowser.open("http://localhost:5000")).start()
     socketio.run(app, port=5000, debug=False)

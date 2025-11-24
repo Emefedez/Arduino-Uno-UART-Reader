@@ -43,12 +43,19 @@ void handleConfig(String cmd) {
 
 			if (pin.startsWith("D")) {
 				int p = pin.substring(1).toInt();
-				if (p >= 0 && p < 14)
+				if (p >= 0 && p < 14) {
 					monitorDigital[p] = (val == 1);
+					// Configure as INPUT_PULLUP when monitoring enabled
+					if (monitorDigital[p]) {
+						pinMode(p, INPUT_PULLUP);
+					}
+				}
 			} else if (pin.startsWith("A")) {
 				int p = pin.substring(1).toInt();
-				if (p >= 0 && p < 6)
+				if (p >= 0 && p < 6) {
 					monitorAnalog[p] = (val == 1);
+					// Analog pins don't need pinMode configuration for analogRead
+				}
 			}
 		}
 		startIndex = commaIndex + 1;
